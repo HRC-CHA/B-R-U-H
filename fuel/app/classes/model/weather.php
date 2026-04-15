@@ -4,7 +4,6 @@ class Model_Weather extends \Model
 {
     private static function get_keys() {
         return [
-            // getenv와 $_ENV를 모두 체크해서 어떤 상황에서도 키를 잡아냄
             'yahoo' => getenv('YAHOO_CLIENT_ID') ?: ($_ENV['YAHOO_CLIENT_ID'] ?? ''),
             'owm'   => getenv('OWM_API_KEY') ?: ($_ENV['OWM_API_KEY'] ?? '')
         ];
@@ -23,18 +22,17 @@ class Model_Weather extends \Model
         } catch (\CacheNotFoundException $e) {
         }
 
-        // 🚨 만약 API가 터져도 화면이 깨지지 않게 기본값(Skeleton) 미리 세팅
         $hybrid_data = [
-            'temp' => null, // null로 둬야 그래프가 안 깨짐
+            'temp' => null,
             'humidity' => 0,
             'condition' => 'Unknown',
             'icon' => 'cloud',
             'current_rainfall' => 0,
-            'forecast' => [] // 빈 배열로 둬야 X축이 에러 안 남
+            'forecast' => []
         ];
 
         if (!$yahoo_id || !$owm_key) {
-            return $hybrid_data; // 키가 없으면 기본값 바로 반환
+            return $hybrid_data;
         }
 
         $zip_url = "https://map.yahooapis.jp/search/zip/V1/zipCodeSearch?query=" . urlencode($postal_code) . "&appid=" . $yahoo_id . "&output=json";
@@ -47,7 +45,6 @@ class Model_Weather extends \Model
                 $lon = $coords[0];
                 $lat = $coords[1];
 
-                // 야후 날씨(강우량) API 호출
                 $weather_url = "https://map.yahooapis.jp/weather/V1/place?coordinates=" . $lon . "," . $lat . "&appid=" . $yahoo_id . "&output=json";
                 $weather_response = @file_get_contents($weather_url);
 
@@ -61,13 +58,12 @@ class Model_Weather extends \Model
                             $time_formatted = substr($w['Date'], 8, 2) . ':' . substr($w['Date'], 10, 2);
                             $hybrid_data['forecast'][] = [
                                 'time' => $time_formatted,
-                                'rainfall' => (float)$w['Rainfall'] // 숫자로 확실히 형변환
+                                'rainfall' => (float)$w['Rainfall']
                             ];
                         }
                     }
                 }
 
-                // OpenWeatherMap API 호출
                 $owm_url = "https://api.openweathermap.org/data/2.5/weather?lat=" . $lat . "&lon=" . $lon . "&units=metric&appid=" . $owm_key;
                 $owm_response = @file_get_contents($owm_url);
                 
@@ -88,7 +84,6 @@ class Model_Weather extends \Model
             $hybrid_data['icon'] = 'cloud-rain';
         }
 
-        // 정상적으로 데이터를 받아왔을 때만 캐시에 저장! (에러 데이터 캐싱 방지)
         if (!empty($hybrid_data['forecast'])) {
             \Cache::set($cache_key, $hybrid_data, 60);
         }

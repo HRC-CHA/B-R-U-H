@@ -314,7 +314,6 @@
             const options = {
                 series: [{
                     name: 'Rainfall',
-                    // 데이터가 없을 경우 에러 방지용 || 0 처리
                     data: data.map(item => item.rainfall || 0)
                 }],
                 chart: {
@@ -365,7 +364,6 @@
                     strokeDashArray: 4,
                     xaxis: { lines: { show: true } },
                     yaxis: { lines: { show: false } },
-                    // 💡 하단 여백(bottom: 15) 확보하여 라벨 잘림 완벽 방지
                     padding: { top: 0, right: 30, bottom: 15, left: 30 }
                 },
                 tooltip: {
