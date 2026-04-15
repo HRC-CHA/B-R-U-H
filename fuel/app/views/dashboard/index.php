@@ -36,18 +36,18 @@
             --input: 150 10% 20%;
             --ring: 143 35% 48%;
             --radius: 0.75rem;
-            --font-heading: 'Faculty Glyphic', sans-serif;
-             --font-body: 'Inter', sans-serif;
-        }
+            --font-heading: 'Faculty Glyphic', serif;
+            --font-body: 'Inter', sans-serif;
+          }
           
-        body { @apply bg-background text-foreground; font-family: var(--font-body); }
+          body { @apply bg-background text-foreground; font-family: var(--font-body); }
 
-  h1, h2, h3, h4, h5, h6, select {
-    font-family: var(--font-heading);
-    letter-spacing: -0.01em;
-  }
-}
-select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+          h1, h2, h3, h4, h5, h6, select {
+            font-family: var(--font-heading);
+            letter-spacing: -0.01em;
+          }
+        }
+        select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
     </style>
 
     <script>
@@ -146,18 +146,18 @@ select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
                                 <label class="text-[10px] font-bold text-primary uppercase tracking-widest mb-3 block">Current Spot</label>
                                 
                                 <div class="relative group mt-2">
-    <select onchange="window.location.href='/dashboard/index/' + this.value;" 
-            class="w-full bg-secondary/40 border border-border/60 rounded-xl py-4 pl-5 pr-12 text-3xl sm:text-4xl font-bold text-foreground cursor-pointer transition-all hover:bg-secondary hover:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none">
-        <?php foreach($spots as $spot): ?>
-            <option value="<?= $spot->id ?>" <?= $active_spot->id == $spot->id ? 'selected' : '' ?> class="bg-card text-lg">
-                <?= $spot->name ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-    <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground group-hover:text-primary transition-colors">
-        <i data-lucide="chevron-down" class="h-8 w-8"></i>
-    </div>
-</div>
+                                    <select onchange="window.location.href='/dashboard/index/' + this.value;" 
+                                            class="w-full bg-secondary/40 border border-border/60 rounded-xl py-4 pl-5 pr-12 text-3xl sm:text-4xl font-bold text-foreground cursor-pointer transition-all hover:bg-secondary hover:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none">
+                                        <?php foreach($spots as $spot): ?>
+                                            <option value="<?= $spot->id ?>" <?= $active_spot->id == $spot->id ? 'selected' : '' ?> class="bg-card text-lg">
+                                                <?= $spot->name ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground group-hover:text-primary transition-colors">
+                                        <i data-lucide="chevron-down" class="h-8 w-8"></i>
+                                    </div>
+                                </div>
 
                                 <p class="text-sm text-muted-foreground font-medium flex items-center gap-1.5 mt-4 ml-1">
                                     <i data-lucide="map-pin" class="h-4 w-4"></i> 〒<?= $active_spot->display_postal_code() ?>
@@ -167,17 +167,17 @@ select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
                             <?php if(!empty($weather)): ?>
                             <div class="flex items-center gap-6 mt-6">
                                 <div class="h-20 w-20 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
-                                    <i data-lucide="<?= $weather['icon'] ?>" class="h-10 w-10"></i>
+                                    <i data-lucide="<?= $weather['icon'] ?? 'cloud' ?>" class="h-10 w-10"></i>
                                 </div>
                                 <div>
                                     <div class="flex items-baseline gap-2">
-                                        <h3 class="text-5xl font-extrabold text-foreground"><?= $weather['temp'] ?>°C</h3>
-                                        <span class="text-lg font-medium text-muted-foreground">/ <?= $weather['condition'] ?></span>
+                                        <h3 class="text-5xl font-extrabold text-foreground"><?= $weather['temp'] ?? '--' ?>°C</h3>
+                                        <span class="text-lg font-medium text-muted-foreground">/ <?= $weather['condition'] ?? 'Unknown' ?></span>
                                     </div>
                                     <p class="text-base text-muted-foreground mt-2">
-                                        Humidity: <span class="text-foreground font-medium"><?= $weather['humidity'] ?>%</span> 
+                                        Humidity: <span class="text-foreground font-medium"><?= $weather['humidity'] ?? '--' ?>%</span> 
                                         <span class="mx-3 text-border">|</span> 
-                                        Rain: <span class="text-foreground font-medium"><?= $weather['current_rainfall'] ?> mm/h</span>
+                                        Rain: <span class="text-foreground font-medium"><?= $weather['current_rainfall'] ?? '0' ?> mm/h</span>
                                     </p>
                                 </div>
                             </div>
@@ -185,7 +185,7 @@ select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
                         </div>
                     </div>
 
-                    <div class="lg:w-[55%] bg-background/30 relative flex flex-col justify-end pt-8 overflow-hidden">
+                    <div class="lg:w-[55%] bg-background/30 relative flex flex-col justify-end pt-8 pb-3 overflow-hidden">
                         <div class="absolute top-8 left-8 z-10">
                             <h4 class="text-sm font-bold text-foreground flex items-center gap-2">
                                 <span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.6)]"></span>
@@ -193,7 +193,7 @@ select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
                             </h4>
                             <p class="text-xs text-muted-foreground mt-1">Updates automatically every 10 mins</p>
                         </div>
-                        <div id="rainChart" class="w-[102%] h-[280px] -ml-2 -mb-2"></div>
+                        <div id="rainChart" class="w-full h-[280px] px-2 pb-4"></div>
                     </div>
                 </div>
             </div>
@@ -314,7 +314,8 @@ select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
             const options = {
                 series: [{
                     name: 'Rainfall',
-                    data: data.map(item => item.rainfall)
+                    // 데이터가 없을 경우 에러 방지용 || 0 처리
+                    data: data.map(item => item.rainfall || 0)
                 }],
                 chart: {
                     type: 'area',
@@ -344,14 +345,18 @@ select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
                     }
                 },
                 xaxis: {
-                    categories: data.map(item => item.time), 
+                    type: 'category',
+                    categories: data.map(item => item.time || ''), 
                     axisBorder: { show: false },
                     axisTicks: { show: false },
-                    tooltip: { enabled: false },
-                    labels: {
-                        style: { colors: '#64748b', fontSize: '11px', fontWeight: 600 },
-                        offsetY: 2
-                    }
+                    labels: { 
+                        show: true, 
+                        rotate: 0, 
+                        hideOverlappingLabels: false, 
+                        style: { colors: '#94a3b8', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 600 }, 
+                        offsetY: 2 
+                    },
+                    tooltip: { enabled: false }
                 },
                 yaxis: { show: false, min: 0 },
                 grid: {
@@ -360,7 +365,8 @@ select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
                     strokeDashArray: 4,
                     xaxis: { lines: { show: true } },
                     yaxis: { lines: { show: false } },
-                    padding: { top: 0, right: 30, bottom: 0, left: 30 }
+                    // 💡 하단 여백(bottom: 15) 확보하여 라벨 잘림 완벽 방지
+                    padding: { top: 0, right: 30, bottom: 15, left: 30 }
                 },
                 tooltip: {
                     theme: 'dark',
@@ -380,8 +386,8 @@ select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
                 const newData = await res.json();
                 
                 if (rainChart) {
-                    rainChart.updateSeries([{ data: newData.map(item => item.rainfall) }]);
-                    rainChart.updateOptions({ xaxis: { categories: newData.map(item => item.time) } });
+                    rainChart.updateSeries([{ data: newData.map(item => item.rainfall || 0) }]);
+                    rainChart.updateOptions({ xaxis: { categories: newData.map(item => item.time || '') } });
                 } else {
                     initChart(newData);
                 }

@@ -36,6 +36,25 @@ define('PKGPATH', realpath(__DIR__.'/../fuel/packages/').DIRECTORY_SEPARATOR);
  */
 define('COREPATH', realpath(__DIR__.'/../fuel/core/').DIRECTORY_SEPARATOR);
 
+$env_file = __DIR__ . '/../.env'; 
+
+if (file_exists($env_file)) {
+    $lines = file($env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (empty($line) || strpos($line, '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($name, $value) = explode('=', $line, 2);
+            $name = trim($name);
+            $value = trim($value, " \t\n\r\0\x0B\"'");
+            
+            putenv("{$name}={$value}");
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+        }
+    }
+}
+
 // Get the start time and memory for use later
 defined('FUEL_START_TIME') or define('FUEL_START_TIME', microtime(true));
 defined('FUEL_START_MEM') or define('FUEL_START_MEM', memory_get_usage());
@@ -43,7 +62,7 @@ defined('FUEL_START_MEM') or define('FUEL_START_MEM', memory_get_usage());
 // Load in the Fuel autoloader
 if ( ! file_exists(COREPATH.'classes'.DIRECTORY_SEPARATOR.'autoloader.php'))
 {
-	die('No composer autoloader found. Please run composer to install the FuelPHP framework dependencies first!');
+    die('No composer autoloader found. Please run composer to install the FuelPHP framework dependencies first!');
 }
 
 // Activate the framework class autoloader
@@ -53,59 +72,59 @@ class_alias('Fuel\\Core\\Autoloader', 'Autoloader');
 // Exception route processing closure
 $routerequest = function($route = null, $e = false)
 {
-	Request::reset_request(true);
+    Request::reset_request(true);
 
-	$route = array_key_exists($route, Router::$routes) ? Router::$routes[$route]->translation : Config::get('routes.'.$route);
+    $route = array_key_exists($route, Router::$routes) ? Router::$routes[$route]->translation : Config::get('routes.'.$route);
 
-	if ($route instanceof Closure)
-	{
-		$response = $route();
+    if ($route instanceof Closure)
+    {
+        $response = $route();
 
-		if( ! $response instanceof Response)
-		{
-			$response = Response::forge($response);
-		}
-	}
-	elseif ($e === false)
-	{
-		$response = Request::forge()->execute()->response();
-	}
-	elseif ($route)
-	{
-		$response = Request::forge($route, false)->execute(array($e))->response();
-	}
-	else
-	{
-		throw $e;
-	}
+        if( ! $response instanceof Response)
+        {
+            $response = Response::forge($response);
+        }
+    }
+    elseif ($e === false)
+    {
+        $response = Request::forge()->execute()->response();
+    }
+    elseif ($route)
+    {
+        $response = Request::forge($route, false)->execute(array($e))->response();
+    }
+    else
+    {
+        throw $e;
+    }
 
-	return $response;
+    return $response;
 };
 
 // Generate the request, execute it and send the output.
 try
 {
-	// Boot the app...
-	require APPPATH.'bootstrap.php';
+    // Boot the app...
+    require APPPATH.'bootstrap.php';
 
-	// ... and execute the main request
-	$response = $routerequest();
+    // ... and execute the main request
+    $response = $routerequest();
 }
 catch (HttpBadRequestException $e)
 {
-	$response = $routerequest('_400_', $e);
+    $response = $routerequest('_400_', $e);
 }
 catch (HttpNoAccessException $e)
 {
-	$response = $routerequest('_403_', $e);
+    $response = $routerequest('_403_', $e);
 }
 catch (HttpNotFoundException $e)
 {
-	$response = $routerequest('_404_', $e);
+    $response = $routerequest('_404_', $e);
 }
 catch (HttpServerErrorException $e)
 {
-	$response = $routerequest('_500_', $e);
+    $response = $routerequest('_500_', $e);
 }
 
 // This will add the execution time and memory usage to the output.
@@ -113,14 +132,14 @@ catch (HttpServerErrorException $e)
 $response->body((string) $response);
 if (strpos($response->body(), '{exec_time}') !== false or strpos($response->body(), '{mem_usage}') !== false)
 {
-	$bm = Profiler::app_total();
-	$response->body(
-		str_replace(
-			array('{exec_time}', '{mem_usage}'),
-			array(round($bm[0], 4), round($bm[1] / pow(1024, 2), 3)),
-			$response->body()
-		)
-	);
+    $bm = Profiler::app_total();
+    $response->body(
+        str_replace(
+            array('{exec_time}', '{mem_usage}'),
+            array(round($bm[0], 4), round($bm[1] / pow(1024, 2), 3)),
+            $response->body()
+        )
+    );
 }
 
 // Send the output to the client
