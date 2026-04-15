@@ -1,0 +1,1 @@
+{{Fuel_Cache_Properties}}{"created":1776264178,"expiration":1776264238,"dependencies":[],"content_handler":"serialized"}{{/Fuel_Cache_Properties}}a:6:{s:4:"temp";i:20;s:9:"condition";s:6:"Cloudy";s:4:"icon";s:5:"cloud";s:8:"humidity";i:50;s:16:"current_rainfall";d:0;s:8:"forecast";a:0:{}}
