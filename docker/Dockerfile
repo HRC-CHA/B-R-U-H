@@ -55,7 +55,10 @@ RUN mkdir /var/www/html/my_fuel_project && \
     cd /var/www/html/my_fuel_project && \
     curl https://get.fuelphp.com/oil | sh
 
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 80
 
-# Apacheとcronをフォアグラウンドで起動
-CMD ["apache2-foreground"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD []

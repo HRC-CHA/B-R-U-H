@@ -38,8 +38,8 @@ class Controller_Spot extends Controller
             
             if ($spot) {
                 $spot->name = \Input::post('name');
-                $spot->postal_code = \Input::post('postal_code');
-                
+                $spot->postal_code = str_replace('-', '', (string) \Input::post('postal_code', ''));
+
                 $spot->save();
             }
         }
