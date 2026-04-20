@@ -14,8 +14,13 @@ class Model_Weather extends \Model
         $keys = self::get_keys();
         $yahoo_id = $keys['yahoo'];
         $owm_key = $keys['owm'];
+        $cache_prefix = (string) \Config::get('weather.cache_key_prefix', 'weather_');
+        $cache_ttl = (int) \Config::get('weather.cache_ttl_seconds', 60);
+        $yahoo_zip_search_url = (string) \Config::get('weather.yahoo_zip_search_url', 'https://map.yahooapis.jp/search/zip/V1/zipCodeSearch');
+        $yahoo_weather_url = (string) \Config::get('weather.yahoo_weather_url', 'https://map.yahooapis.jp/weather/V1/place');
+        $openweather_current_url = (string) \Config::get('weather.openweather_current_url', 'https://api.openweathermap.org/data/2.5/weather');
 
-        $cache_key = 'weather_' . md5($postal_code);
+        $cache_key = $cache_prefix . md5($postal_code);
 
         try {
             return \Cache::get($cache_key);
@@ -35,7 +40,11 @@ class Model_Weather extends \Model
             return $hybrid_data;
         }
 
-        $zip_url = "https://map.yahooapis.jp/search/zip/V1/zipCodeSearch?query=" . urlencode($postal_code) . "&appid=" . $yahoo_id . "&output=json";
+        $zip_url = $yahoo_zip_search_url.'?'.http_build_query(array(
+            'query' => $postal_code,
+            'appid' => $yahoo_id,
+            'output' => 'json',
+        ));
         $zip_response = @file_get_contents($zip_url);
         
         if ($zip_response) {
@@ -45,7 +54,11 @@ class Model_Weather extends \Model
                 $lon = $coords[0];
                 $lat = $coords[1];
 
-                $weather_url = "https://map.yahooapis.jp/weather/V1/place?coordinates=" . $lon . "," . $lat . "&appid=" . $yahoo_id . "&output=json";
+                $weather_url = $yahoo_weather_url.'?'.http_build_query(array(
+                    'coordinates' => $lon.','.$lat,
+                    'appid' => $yahoo_id,
+                    'output' => 'json',
+                ));
                 $weather_response = @file_get_contents($weather_url);
 
                 if ($weather_response) {
@@ -64,7 +77,12 @@ class Model_Weather extends \Model
                     }
                 }
 
-                $owm_url = "https://api.openweathermap.org/data/2.5/weather?lat=" . $lat . "&lon=" . $lon . "&units=metric&appid=" . $owm_key;
+                $owm_url = $openweather_current_url.'?'.http_build_query(array(
+                    'lat' => $lat,
+                    'lon' => $lon,
+                    'units' => 'metric',
+                    'appid' => $owm_key,
+                ));
                 $owm_response = @file_get_contents($owm_url);
                 
                 if ($owm_response) {
@@ -84,8 +102,8 @@ class Model_Weather extends \Model
             $hybrid_data['icon'] = 'cloud-rain';
         }
 
-        if (!empty($hybrid_data['forecast'])) {
-            \Cache::set($cache_key, $hybrid_data, 60);
+        if (!empty($hybrid_data['forecast']) && $cache_ttl > 0) {
+            \Cache::set($cache_key, $hybrid_data, $cache_ttl);
         }
 
         return $hybrid_data;

@@ -206,11 +206,14 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <?php foreach($plants as $plant): ?>
                     <?php 
-                        $latest_date = null;
+                        $latest_date_ymd = null;
+                        $is_last_updated_stale = false;
                         if(!empty($plant->growth_logs)) {
                             $logs = $plant->growth_logs;
                             usort($logs, function($a, $b) { return $b->measured_at - $a->measured_at; });
-                            $latest_date = date('M d, Y', $logs[0]->measured_at);
+                            $latest_ts = (int)$logs[0]->measured_at;
+                            $latest_date_ymd = date('Y/m/d', $latest_ts);
+                            $is_last_updated_stale = (time() - $latest_ts) >= (30 * 24 * 60 * 60);
                         }
                     ?>
                     <div class="bg-card border border-border rounded-xl p-5 shadow-sm hover:border-primary/50 transition-all flex flex-col h-full">
@@ -222,10 +225,6 @@
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
                                         <h3 class="font-bold text-card-foreground leading-tight"><?= $plant->name ?></h3>
-                                        <?php if($latest_date): ?>
-                                            <span class="inline-flex items-center text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 cursor-default shadow-sm font-heading">
-                                            <i data-lucide="clock" class="h-3 w-3 mr-1"></i> Updated: <?= $latest_date ?>                                            </span>
-                                        <?php endif; ?>
                                     </div>
                                     <p class="text-xs text-muted-foreground"><?= $plant->species ?></p>
                                 </div>
@@ -253,10 +252,15 @@
 
                         <div class="mt-auto pt-4 border-t border-border">
                             <div class="flex items-center justify-between">
-                                <h4 class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                                    <i data-lucide="trending-up" class="h-3.5 w-3.5 text-primary"></i>
-                                    Growth Analytics
-                                </h4>
+                                <div>
+                                    <h4 class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                        <i data-lucide="trending-up" class="h-3.5 w-3.5 text-primary"></i>
+                                        GROWTH ANALYTICS
+                                    </h4>
+                                    <p class="text-[10px] mt-1 <?= $is_last_updated_stale ? 'text-destructive' : 'text-muted-foreground' ?>">
+                                        Last updated: <?= $latest_date_ymd ?: '-' ?>
+                                    </p>
+                                </div>
                                 <?php if(!empty($plant->growth_logs)): ?>
                                     <button onclick="toggleGrowthView(<?= $plant->id ?>)" class="text-muted-foreground hover:text-primary focus:outline-none p-1 rounded transition-colors">
                                         <i data-lucide="chevron-down" id="chevron-<?= $plant->id ?>" class="h-5 w-5 transition-transform duration-300"></i>

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Faculty+Glyphic&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/knockout@3.5.1/build/output/knockout-latest.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
@@ -138,10 +139,10 @@
 
         <?php if($active_spot): ?>
             <div class="bg-card border border-border rounded-2xl shadow-sm overflow-hidden mb-10">
-                <div class="flex flex-col lg:flex-row min-h-[340px]">
+                <div class="flex flex-col lg:flex-row lg:items-start min-h-[300px] divide-y divide-border lg:divide-y-0 lg:divide-x">
                     
-                    <div class="lg:w-[45%] p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-border/50 flex flex-col justify-between">
-                        <div>
+                    <div class="lg:w-1/2 px-8 pt-8 pb-4 lg:px-10 lg:pt-10 lg:pb-10 flex flex-col min-w-0">
+                        <div class="min-w-0">
                             <div class="mb-8">
                                 <label class="text-[10px] font-bold text-primary uppercase tracking-widest mb-3 block">Current Spot</label>
                                 
@@ -185,15 +186,31 @@
                         </div>
                     </div>
 
-                    <div class="lg:w-[55%] bg-background/30 relative flex flex-col justify-end pt-8 pb-3 overflow-hidden">
-                        <div class="absolute top-8 left-8 z-10">
-                            <h4 class="text-sm font-bold text-foreground flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.6)]"></span>
-                                Live Rainfall Forecast
-                            </h4>
-                            <p class="text-xs text-muted-foreground mt-1">Updates automatically every 10 mins</p>
+                    <div id="rain-ko-root" class="lg:w-1/2 bg-background/30 flex flex-col min-w-0 px-8 pt-8 pb-4 lg:px-10 lg:pt-10 lg:pb-10">
+                        <div data-bind="with: rainForecast" class="flex flex-col w-full text-left">
+                            <div id="rain-forecast-header" class="shrink-0 z-10 pb-0">
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    <h4 class="text-sm font-bold text-foreground flex items-center gap-2 m-0 leading-tight">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.6)] shrink-0"></span>
+                                        Live Rainfall Forecast
+                                    </h4>
+                                    <span class="text-xs text-muted-foreground font-medium leading-tight" data-bind="text: scheduleHint"></span>
+                                    <span class="text-xs text-primary font-medium leading-tight" data-bind="visible: isLoading">Loading…</span>
+                                </div>
+                                <p class="text-xs text-destructive mt-2 font-medium" data-bind="visible: errorMessage, text: errorMessage"></p>
+                            </div>
+                            <div id="rainChart" class="h-[208px] min-h-[208px] w-full shrink-0 min-w-0 overflow-hidden isolate relative mt-0"></div>
+                            <div class="flex flex-row items-center justify-between gap-0 mt-0">
+                                <div class="flex-1 min-w-0 self-center">
+                                    <p id="rain-last-updated" class="text-xs text-muted-foreground mb-0 leading-snug" data-bind="visible: lastUpdatedCaption, text: lastUpdatedCaption"></p>
+                                </div>
+                                <label class="inline-flex items-center gap-2 cursor-pointer shrink-0 select-none" title="Turn periodic chart updates on or off">
+                                    <span class="text-xs text-muted-foreground whitespace-nowrap">Auto refresh</span>
+                                    <input type="checkbox" class="sr-only peer" data-bind="checked: autoRefreshEnabled" aria-label="Auto refresh rainfall chart" />
+                                    <span class="relative inline-block w-9 h-5 rounded-full bg-muted transition-colors peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-background after:shadow-sm after:transition-transform peer-checked:after:translate-x-4" aria-hidden="true"></span>
+                                </label>
+                            </div>
                         </div>
-                        <div id="rainChart" class="w-full h-[280px] px-2 pb-4"></div>
                     </div>
                 </div>
             </div>
@@ -213,6 +230,11 @@
                         elseif ($days_since >= 2) $bar_color = 'bg-warning';
                         $percentage = min(($days_since / 7) * 100, 100);
                         $brightness = max(100 - ($days_since * 7.14), 50);
+                        $plant_age = isset($plant_age_days[$plant->id]) ? $plant_age_days[$plant->id] : null;
+                        $latest_log = \Model_Growth::find('last', array(
+                            'where' => array('plant_id' => $plant->id),
+                            'order_by' => array('measured_at' => 'desc')
+                        ));
                     ?>
                     <div class="bg-background border border-border rounded-xl p-5 shadow-sm space-y-4 hover:border-primary/50 transition-all duration-500"
                          style="filter: brightness(<?= $brightness ?>%);" id="plant-card-<?= $plant->id ?>">
@@ -220,33 +242,38 @@
                             <div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                 <i data-lucide="sprout" class="h-6 w-6 text-primary"></i>
                             </div>
-                            <div>
-                                <h4 class="font-bold text-lg text-foreground leading-tight"><?= $plant->name ?></h4>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 w-full">
+                                    <h4 class="font-bold text-lg text-foreground leading-tight"><?= $plant->name ?></h4>
+                                    <?php if ($latest_log): ?>
+                                        <span class="ml-auto inline-flex items-center text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                                            <i data-lucide="clock" class="h-3 w-3 mr-1"></i>
+                                            Upd: <?= date('M d', $latest_log->measured_at) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                                 <p class="text-sm text-muted-foreground"><?= $plant->species ?></p>
                             </div>
                         </div>
                         
-                        <?php 
-                            $latest_log = \Model_Growth::find('last', array(
-                                'where' => array('plant_id' => $plant->id),
-                                'order_by' => array('measured_at' => 'desc')
-                            ));
-                        ?>
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground border border-border">
                                 <span class="text-muted-foreground font-normal mr-1">Size:</span> <?= $plant->size ?>
                             </span>
                             
-                            <?php if ($latest_log): ?>
-                                <span class="inline-flex items-center text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-                                    <i data-lucide="clock" class="h-3 w-3 mr-1"></i>
-                                    Upd: <?= date('M d', $latest_log->measured_at) ?>
-                                </span>
-                            <?php endif; ?>
-
                             <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground border border-border">
                                 <span class="text-muted-foreground font-normal mr-1">Pot:</span> <?= $plant->pot_size ?>
                             </span>
+
+                            <?php if ($plant_age !== null): ?>
+                                <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground border border-border">
+                                    <?php if ($plant_age <= 0): ?>
+                                        Added today
+                                    <?php else: ?>
+                                        Added <?= $plant_age ?>d ago
+                                    <?php endif; ?>
+                                </span>
+                            <?php endif; ?>
                         </div>
 
                         <div class="space-y-2">
@@ -307,96 +334,290 @@
             lucide.createIcons();
         }
 
-        let rainChart;
-        function initChart(data) {
-            if (!data || data.length === 0) return;
+        function RainForecastViewModel(spotId, pollIntervalMs) {
+            const self = this;
+            const LS_KEY = 'dashboard_rain_auto_refresh';
 
-            const options = {
-                series: [{
-                    name: 'Rainfall',
-                    data: data.map(item => item.rainfall || 0)
-                }],
-                chart: {
-                    type: 'area',
-                    height: '100%',
-                    parentHeightOffset: 0,
-                    toolbar: { show: false },
-                    zoom: { enabled: false },
-                    backgroundColor: 'transparent',
-                    sparkline: { enabled: false },
-                    animations: { enabled: true, easing: 'easeinout', speed: 800 },
-                    fontFamily: 'Inter, sans-serif'
-                },
-                colors: ['#38bdf8'], 
-                dataLabels: { enabled: false },
-                stroke: { curve: 'smooth', width: 3 },
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom: 0.6,
-                        opacityTo: 0.0,
-                        stops: [0, 100],
-                        colorStops: [
-                            { offset: 0, color: "#38bdf8", opacity: 0.5 },
-                            { offset: 100, color: "#38bdf8", opacity: 0 }
-                        ]
-                    }
-                },
-                xaxis: {
-                    type: 'category',
-                    categories: data.map(item => item.time || ''), 
-                    axisBorder: { show: false },
-                    axisTicks: { show: false },
-                    labels: { 
-                        show: true, 
-                        rotate: 0, 
-                        hideOverlappingLabels: false, 
-                        style: { colors: '#94a3b8', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 600 }, 
-                        offsetY: 2 
-                    },
-                    tooltip: { enabled: false }
-                },
-                yaxis: { show: false, min: 0 },
-                grid: {
+            self.rows = ko.observable([]);
+            self.isLoading = ko.observable(false);
+            self.errorMessage = ko.observable('');
+            self.lastUpdatedAt = ko.observable(null);
+            self.autoRefreshEnabled = ko.observable(true);
+
+            try {
+                var stored = localStorage.getItem(LS_KEY);
+                if (stored === '0') {
+                    self.autoRefreshEnabled(false);
+                } else if (stored === '1') {
+                    self.autoRefreshEnabled(true);
+                }
+            } catch (ignoreLs) {}
+
+            self.autoRefreshEnabled.subscribe(function (on) {
+                try {
+                    localStorage.setItem(LS_KEY, on ? '1' : '0');
+                } catch (ignoreLs2) {}
+            });
+
+            function describePollInterval(ms) {
+                if (!ms || ms <= 0) {
+                    return 'manual refresh';
+                }
+                if (ms % 60000 === 0) {
+                    var mins = ms / 60000;
+                    return mins + ' min' + (mins === 1 ? '' : 's');
+                }
+                if (ms % 1000 === 0) {
+                    var secs = ms / 1000;
+                    return secs + ' sec' + (secs === 1 ? '' : 's');
+                }
+                return ms + ' ms';
+            }
+
+            self.scheduleHint = ko.pureComputed(function () {
+                if (self.autoRefreshEnabled()) {
+                    return 'Auto refresh ON; Updates every ' + describePollInterval(pollIntervalMs);
+                }
+                return 'Auto refresh OFF';
+            });
+
+            self.pulseDotOpacity = ko.pureComputed(function () {
+                return self.autoRefreshEnabled() ? 1 : 0.45;
+            });
+
+            self.lastUpdatedCaption = ko.pureComputed(function () {
+                if (self.isLoading()) {
+                    return '';
+                }
+                const t = self.lastUpdatedAt();
+                if (!t) {
+                    return '';
+                }
+                return 'Last updated ' + t.toLocaleTimeString();
+            });
+
+            let rainChart = null;
+
+            function rainXAxisLabelsOptions() {
+                return {
                     show: true,
-                    borderColor: 'rgba(255,255,255,0.05)',
-                    strokeDashArray: 4,
-                    xaxis: { lines: { show: true } },
-                    yaxis: { lines: { show: false } },
-                    padding: { top: 0, right: 30, bottom: 15, left: 30 }
-                },
-                tooltip: {
-                    theme: 'dark',
-                    y: { formatter: (val) => val + " mm/h" },
-                    marker: { show: false }
+                    rotate: 0,
+                    hideOverlappingLabels: false,
+                    trim: false,
+                    offsetX: 0,
+                    offsetY: 0,
+                    style: { colors: '#94a3b8', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 600 }
+                };
+            }
+
+            function rainGridPadding() {
+                return { top: 0, right: 2, bottom: 1, left: 2 };
+            }
+
+            function rainYAxisMaxFromData(data) {
+                var m = 0;
+                for (var i = 0; i < data.length; i++) {
+                    var v = parseFloat(data[i].rainfall);
+                    if (!isFinite(v)) v = 0;
+                    if (v > m) m = v;
+                }
+                if (m <= 0) return 2;
+                return Math.min(60, Math.ceil(m * 1.15 + 0.5));
+            }
+
+            function buildChartOptions(data) {
+                return {
+                    series: [{
+                        name: 'Rainfall',
+                        data: data.map(function (item) { return item.rainfall || 0; })
+                    }],
+                    chart: {
+                        type: 'area',
+                        height: 208,
+                        width: '100%',
+                        offsetX: 0,
+                        offsetY: 0,
+                        parentHeightOffset: 0,
+                        toolbar: { show: false },
+                        zoom: { enabled: false },
+                        backgroundColor: 'transparent',
+                        sparkline: { enabled: false },
+                        animations: { enabled: true, easing: 'easeinout', speed: 800 },
+                        fontFamily: 'Inter, sans-serif'
+                    },
+                    colors: ['#38bdf8'],
+                    dataLabels: { enabled: false },
+                    stroke: { curve: 'smooth', width: 3 },
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shadeIntensity: 1,
+                            opacityFrom: 0.6,
+                            opacityTo: 0.0,
+                            stops: [0, 100],
+                            colorStops: [
+                                { offset: 0, color: '#38bdf8', opacity: 0.5 },
+                                { offset: 100, color: '#38bdf8', opacity: 0 }
+                            ]
+                        }
+                    },
+                    xaxis: {
+                        type: 'category',
+                        categories: data.map(function (item) { return item.time || ''; }),
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                        labels: rainXAxisLabelsOptions(),
+                        tooltip: { enabled: false }
+                    },
+                    yaxis: {
+                        show: false,
+                        min: 0,
+                        max: rainYAxisMaxFromData(data),
+                        forceNiceScale: true
+                    },
+                    grid: {
+                        show: true,
+                        borderColor: 'rgba(255,255,255,0.05)',
+                        strokeDashArray: 4,
+                        xaxis: { lines: { show: true } },
+                        yaxis: { lines: { show: false } },
+                        padding: rainGridPadding()
+                    },
+                    tooltip: {
+                        theme: 'dark',
+                        y: { formatter: function (val) { return val + ' mm/h'; } },
+                        marker: { show: false }
+                    }
+                };
+            }
+
+            function syncApexFromRows() {
+                const data = self.rows() || [];
+                if (!data.length) {
+                    if (rainChart) {
+                        rainChart.destroy();
+                        rainChart = null;
+                    }
+                    return;
+                }
+                if (!rainChart) {
+                    rainChart = new ApexCharts(document.querySelector('#rainChart'), buildChartOptions(data));
+                    rainChart.render();
+                } else {
+                    rainChart.updateSeries([{
+                        name: 'Rainfall',
+                        data: data.map(function (item) { return item.rainfall || 0; })
+                    }]);
+                    rainChart.updateOptions({
+                        chart: { height: 208, width: '100%', offsetX: 0, offsetY: 0 },
+                        xaxis: {
+                            categories: data.map(function (item) { return item.time || ''; }),
+                            labels: rainXAxisLabelsOptions()
+                        },
+                        grid: { padding: rainGridPadding() },
+                        yaxis: {
+                            show: false,
+                            min: 0,
+                            max: rainYAxisMaxFromData(data),
+                            forceNiceScale: true
+                        }
+                    });
+                }
+                if (rainChart && typeof rainChart.resize === 'function') {
+                    requestAnimationFrame(function () {
+                        rainChart.resize();
+                    });
+                }
+            }
+
+            self.rows.subscribe(syncApexFromRows);
+
+            self.refreshNow = async function () {
+                self.errorMessage('');
+                self.isLoading(true);
+                try {
+                    const res = await fetch('/dashboard/rain_data/' + spotId);
+                    let body;
+                    try {
+                        body = await res.json();
+                    } catch (parseErr) {
+                        throw new Error('Could not read server response');
+                    }
+
+                    if (!res.ok) {
+                        let msg = (body && body.error) ? body.error : ('HTTP ' + res.status);
+                        if (body && body.message) {
+                            msg += ': ' + body.message;
+                        }
+                        self.errorMessage(msg);
+                        self.rows([]);
+                        return;
+                    }
+
+                    if (!Array.isArray(body)) {
+                        self.errorMessage('Unexpected response format');
+                        self.rows([]);
+                        return;
+                    }
+
+                    self.rows(body);
+                    self.lastUpdatedAt(new Date());
+                } catch (e) {
+                    self.errorMessage(e.message || 'Request failed');
+                    console.error('Rain forecast refresh failed', e);
+                    self.rows([]);
+                } finally {
+                    self.isLoading(false);
                 }
             };
 
-            rainChart = new ApexCharts(document.querySelector("#rainChart"), options);
-            rainChart.render();
-        }
+            let pollTimerId = null;
 
-        async function refreshRainData() {
-            <?php if($active_spot): ?>
-            try {
-                const res = await fetch('/dashboard/rain_data/<?= $active_spot->id ?>');
-                const newData = await res.json();
-                
-                if (rainChart) {
-                    rainChart.updateSeries([{ data: newData.map(item => item.rainfall || 0) }]);
-                    rainChart.updateOptions({ xaxis: { categories: newData.map(item => item.time || '') } });
-                } else {
-                    initChart(newData);
+            function clearPollTimer() {
+                if (pollTimerId !== null) {
+                    clearInterval(pollTimerId);
+                    pollTimerId = null;
                 }
-            } catch (e) { console.error("Chart sync failed", e); }
-            <?php endif; ?>
+            }
+
+            function startPollTimerIfOn() {
+                clearPollTimer();
+                if (!pollIntervalMs || !self.autoRefreshEnabled()) {
+                    return;
+                }
+                pollTimerId = setInterval(function () {
+                    self.refreshNow();
+                }, pollIntervalMs);
+            }
+
+            self.autoRefreshEnabled.subscribe(function (on) {
+                if (on) {
+                    startPollTimerIfOn();
+                    self.refreshNow();
+                } else {
+                    clearPollTimer();
+                }
+            });
+
+            startPollTimerIfOn();
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            refreshRainData();
-            setInterval(refreshRainData, 600000); 
+        <?php if (!empty($active_spot)): ?>
+        document.addEventListener('DOMContentLoaded', function () {
+            var root = document.getElementById('rain-ko-root');
+            if (!root || typeof ko === 'undefined') {
+                return;
+            }
+            var pageVm = {
+                rainForecast: new RainForecastViewModel(
+                    <?= (int) $active_spot->id ?>,
+                    <?= (int) \Config::get('weather.rain_poll_interval_ms', 600000) ?>
+                )
+            };
+            ko.applyBindings(pageVm, root);
+            pageVm.rainForecast.refreshNow();
         });
+        <?php endif; ?>
 
         function showToast(title, message) {
             const toast = document.createElement('div');

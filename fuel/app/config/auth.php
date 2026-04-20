@@ -21,9 +21,18 @@
  * This will allow you to upgrade fuel without losing your custom config.
  */
 
+// AUTH_SALT is loaded from project root .env (see public/index.php). Same pattern as Model_Weather API keys.
+$auth_salt = getenv('AUTH_SALT');
+if ($auth_salt === false || $auth_salt === '') {
+    $auth_salt = $_ENV['AUTH_SALT'] ?? '';
+}
+if ($auth_salt === '') {
+    $auth_salt = 'lux_mundi_anno_domini_MMXXVI';
+}
+
 return array(
     'driver'                 => 'Simpleauth',
     'verify_multiple_logins' => false,
-    'salt'                   => 'lux_mundi_anno_domini_MMXXVI',
+    'salt'                   => $auth_salt,
     'iterations'             => 10000,
 );
