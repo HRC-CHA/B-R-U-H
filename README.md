@@ -53,7 +53,9 @@ MySQL基本情報:
   - 降雨チャートのポーリング間隔
   - 降雨時間スロット間隔
 
-## Update Log (2026-04-20)
+## Update Log 
+
+(2026-04-20)
 
 - **Knockout.js対応**
   - Dashboardの降雨チャート領域をKnockout view modelベースに変更
