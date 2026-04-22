@@ -18,29 +18,32 @@ class Controller_Track extends Controller
         $username = \Auth::get_screen_name();
         $email = \Auth::get_email();
 
-        $spots = \Model_Spot::find('all', array(
-            'where' => array('user_id' => $user_id),
-            'order_by' => array('id' => 'asc')
-        ));
+        $spots = \Spot_Repository::all_for_user($user_id, 'asc');
+        $spot_ids = array_keys($spots);
+        if (empty($spot_ids)) {
+            $spot_ids = array(0);
+        }
 
-        $spot_ids = array_keys($spots) ?: array(0);
-        $plants = \Model_Plant::find('all', array(
-            'where' => array(array('spot_id', 'in', $spot_ids)),
-            'order_by' => array('id' => 'asc')
-        ));
+        $plants = \Plant_Repository::for_spot_ids($spot_ids, 'asc');
+        $plant_ids = array();
+        foreach ($plants as $p) {
+            $plant_ids[] = (int) $p['id'];
+        }
+        $logs_by_plant = \Growth_Repository::for_plant_ids_grouped($plant_ids);
+        foreach ($plants as $i => $p) {
+            $pid = (int) $p['id'];
+            $plants[$i]['growth_logs'] = isset($logs_by_plant[$pid]) ? $logs_by_plant[$pid] : array();
+        }
 
-        foreach ($spots as $spot) {
-            $clean_code = str_replace('-', '', $spot->postal_code);
-            $spot->display_postal_code = (strlen($clean_code) === 7) 
-            ? substr($clean_code, 0, 3).'-'.substr($clean_code, 3) 
-            : $clean_code;
+        foreach ($spots as $sid => $spot) {
+            $spots[$sid]['display_postal'] = \Helper_Postal::format($spot['postal_code']);
         }
 
         $data = array(
             'username' => $username,
-            'email' => $email,
-            'spots' => $spots,
-            'plants' => $plants
+            'email'    => $email,
+            'spots'    => $spots,
+            'plants'   => $plants,
         );
 
         return \View::forge('track/index', $data, false);

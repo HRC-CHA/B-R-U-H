@@ -150,8 +150,8 @@
                                     <select onchange="window.location.href='/dashboard/index/' + this.value;" 
                                             class="w-full bg-secondary/40 border border-border/60 rounded-xl py-4 pl-5 pr-12 text-3xl sm:text-4xl font-bold text-foreground cursor-pointer transition-all hover:bg-secondary hover:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none">
                                         <?php foreach($spots as $spot): ?>
-                                            <option value="<?= $spot->id ?>" <?= $active_spot->id == $spot->id ? 'selected' : '' ?> class="bg-card text-lg">
-                                                <?= $spot->name ?>
+                                            <option value="<?= (int) $spot['id'] ?>" <?= (int) $active_spot['id'] == (int) $spot['id'] ? 'selected' : '' ?> class="bg-card text-lg">
+                                                <?= htmlspecialchars($spot['name'], ENT_QUOTES, 'UTF-8') ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -161,7 +161,7 @@
                                 </div>
 
                                 <p class="text-sm text-muted-foreground font-medium flex items-center gap-1.5 mt-4 ml-1">
-                                    <i data-lucide="map-pin" class="h-4 w-4"></i> 〒<?= $active_spot->display_postal_code() ?>
+                                    <i data-lucide="map-pin" class="h-4 w-4"></i> 〒<?= htmlspecialchars(Helper_Postal::format($active_spot['postal_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                 </p>
                             </div>
 
@@ -223,46 +223,48 @@
             <?php else: ?>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     <?php foreach($plants as $plant): ?>
-                    <?php 
-                        $days_since = floor((time() - $plant->last_watered_at) / (60 * 60 * 24));
+                    <?php
+                        $plant_id = (int) $plant['id'];
+                        $lwa = !empty($plant['last_watered_at']) ? (int) $plant['last_watered_at'] : time();
+                        $days_since = floor((time() - $lwa) / (60 * 60 * 24));
                         $bar_color = 'bg-primary';
-                        if ($days_since >= 6) $bar_color = 'bg-destructive';
-                        elseif ($days_since >= 2) $bar_color = 'bg-warning';
+                        if ($days_since >= 6) {
+                            $bar_color = 'bg-destructive';
+                        } elseif ($days_since >= 2) {
+                            $bar_color = 'bg-warning';
+                        }
                         $percentage = min(($days_since / 7) * 100, 100);
                         $brightness = max(100 - ($days_since * 7.14), 50);
-                        $plant_age = isset($plant_age_days[$plant->id]) ? $plant_age_days[$plant->id] : null;
-                        $latest_log = \Model_Growth::find('last', array(
-                            'where' => array('plant_id' => $plant->id),
-                            'order_by' => array('measured_at' => 'desc')
-                        ));
+                        $plant_age = isset($plant_age_days[$plant_id]) ? $plant_age_days[$plant_id] : null;
+                        $latest_log = !empty($latest_growth[$plant_id]) ? $latest_growth[$plant_id] : null;
                     ?>
                     <div class="bg-background border border-border rounded-xl p-5 shadow-sm space-y-4 hover:border-primary/50 transition-all duration-500"
-                         style="filter: brightness(<?= $brightness ?>%);" id="plant-card-<?= $plant->id ?>">
+                         style="filter: brightness(<?= $brightness ?>%);" id="plant-card-<?= $plant_id ?>">
                         <div class="flex items-center gap-4">
                             <div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                 <i data-lucide="sprout" class="h-6 w-6 text-primary"></i>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 w-full">
-                                    <h4 class="font-bold text-lg text-foreground leading-tight"><?= $plant->name ?></h4>
-                                    <?php if ($latest_log): ?>
+                                    <h4 class="font-bold text-lg text-foreground leading-tight"><?= htmlspecialchars($plant['name'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                    <?php if ($latest_log && !empty($latest_log['measured_at'])): ?>
                                         <span class="ml-auto inline-flex items-center text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
                                             <i data-lucide="clock" class="h-3 w-3 mr-1"></i>
-                                            Upd: <?= date('M d', $latest_log->measured_at) ?>
+                                            Upd: <?= date('M d', (int) $latest_log['measured_at']) ?>
                                         </span>
                                     <?php endif; ?>
                                 </div>
-                                <p class="text-sm text-muted-foreground"><?= $plant->species ?></p>
+                                <p class="text-sm text-muted-foreground"><?= htmlspecialchars($plant['species'], ENT_QUOTES, 'UTF-8') ?></p>
                             </div>
                         </div>
                         
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground border border-border">
-                                <span class="text-muted-foreground font-normal mr-1">Size:</span> <?= $plant->size ?>
+                                <span class="text-muted-foreground font-normal mr-1">Size:</span> <?= htmlspecialchars($plant['size'], ENT_QUOTES, 'UTF-8') ?>
                             </span>
                             
                             <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground border border-border">
-                                <span class="text-muted-foreground font-normal mr-1">Pot:</span> <?= $plant->pot_size ?>
+                                <span class="text-muted-foreground font-normal mr-1">Pot:</span> <?= htmlspecialchars($plant['pot_size'], ENT_QUOTES, 'UTF-8') ?>
                             </span>
 
                             <?php if ($plant_age !== null): ?>
@@ -279,21 +281,21 @@
                         <div class="space-y-2">
                             <div class="flex justify-between items-center text-sm font-medium">
                                 <span class="text-muted-foreground">Water Status</span>
-                                <span id="water-text-<?= $plant->id ?>" class="<?= $days_since >= 6 ? 'text-destructive font-bold' : 'text-foreground' ?>">
+                                <span id="water-text-<?= $plant_id ?>" class="<?= $days_since >= 6 ? 'text-destructive font-bold' : 'text-foreground' ?>">
                                     <?= $days_since ?> days ago
                                 </span>
                             </div>
                             <div class="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                                <div id="water-bar-<?= $plant->id ?>" 
-                                     class="h-full <?= $bar_color ?> transition-all duration-500" 
+                                <div id="water-bar-<?= $plant_id ?>"
+                                     class="h-full <?= $bar_color ?> transition-all duration-500"
                                      style="width: <?= $percentage ?>%"></div>
                             </div>
                         </div>
 
                         <div class="pt-2">
                             <button type="button" 
-                                    id="water-btn-<?= $plant->id ?>"
-                                    onclick="waterPlant(event, <?= $plant->id ?>)"
+                                    id="water-btn-<?= $plant_id ?>"
+                                    onclick="waterPlant(event, <?= $plant_id ?>)"
                                     class="w-full inline-flex items-center justify-center rounded-md text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 transition-colors shadow-sm">
                                 <i data-lucide="droplets" class="h-4 w-4 mr-2"></i> 
                                 <span class="btn-text">Water Now!</span>
@@ -602,7 +604,7 @@
             startPollTimerIfOn();
         }
 
-        <?php if (!empty($active_spot)): ?>
+        <?php if (!empty($active_spot) && !empty($active_spot['id'])): ?>
         document.addEventListener('DOMContentLoaded', function () {
             var root = document.getElementById('rain-ko-root');
             if (!root || typeof ko === 'undefined') {
@@ -610,7 +612,7 @@
             }
             var pageVm = {
                 rainForecast: new RainForecastViewModel(
-                    <?= (int) $active_spot->id ?>,
+                    <?= (int) $active_spot['id'] ?>,
                     <?= (int) \Config::get('weather.rain_poll_interval_ms', 600000) ?>
                 )
             };

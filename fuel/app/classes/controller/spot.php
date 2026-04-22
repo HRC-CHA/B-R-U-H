@@ -16,32 +16,24 @@ class Controller_Spot extends Controller
         if (\Input::method() == 'POST') {
             list($driver, $user_id) = \Auth::get_user_id();
 
-            $spot = Model_Spot::forge(array(
-                'user_id' => $user_id,
-                'name' => \Input::post('name'),
-                'postal_code' => str_replace('-', '', \Input::post('postal_code', '1000001')), 
-            ));
-
-
-            if ($spot and $spot->save()) {
-                \Response::redirect('dashboard');
-            } else {
-                return "ERROR: Could not save Spot.";
-            }
+            \Spot_Repository::create(
+                $user_id,
+                \Input::post('name'),
+                str_replace('-', '', (string) \Input::post('postal_code', '1000001'))
+            );
+            \Response::redirect('dashboard');
         }
     }
 
     public function action_update($id = null)
     {
         if (\Input::method() == 'POST') {
-            $spot = \Model_Spot::find($id);
-            
-            if ($spot) {
-                $spot->name = \Input::post('name');
-                $spot->postal_code = str_replace('-', '', (string) \Input::post('postal_code', ''));
-
-                $spot->save();
+            list($driver, $user_id) = \Auth::get_user_id();
+            if (!\Spot_Repository::spot_belongs_to_user($id, $user_id)) {
+                \Response::redirect('track');
             }
+
+            \Spot_Repository::update((int) $id, \Input::post('name'), str_replace('-', '', (string) \Input::post('postal_code', '')));
         }
 
         \Response::redirect('track');
@@ -50,17 +42,8 @@ class Controller_Spot extends Controller
     public function action_delete($id = null)
     {
         if (\Input::method() == 'POST') {
-            $spot = \Model_Spot::find($id);
             list($driver, $user_id) = \Auth::get_user_id();
-
-            if ($spot && $spot->user_id == $user_id) {
-                $plants = \Model_Plant::find('all', array('where' => array('spot_id' => $spot->id)));
-                foreach($plants as $plant) {
-                    $plant->delete();
-                }
-
-                $spot->delete();
-            }
+            \Spot_Repository::delete_if_owner((int) $id, $user_id);
         }
 
         \Response::redirect('track');

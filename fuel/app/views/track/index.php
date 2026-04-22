@@ -161,26 +161,31 @@
                     </div>
                 <?php else: ?>
                     <?php foreach($spots as $spot): ?>
-                    <?php 
+                    <?php
+                        $spot_id = (int) $spot['id'];
                         $plant_count = 0;
-                        foreach($plants as $p) { if($p->spot_id == $spot->id) $plant_count++; }
+                        foreach ($plants as $p) {
+                            if ((int) $p['spot_id'] === $spot_id) {
+                                $plant_count++;
+                            }
+                        }
                     ?>
                     <div class="bg-card border border-border rounded-lg px-4 py-3 flex items-center justify-between gap-4 shadow-sm hover:border-muted-foreground/30 transition-colors">
                         <div class="flex items-center gap-3 min-w-0">
                             <div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                                 <i data-lucide="map-pin" class="h-4 w-4 text-primary"></i>
                             </div>
-                            <span class="font-bold text-card-foreground truncate"><?= $spot->name ?></span>
-                            <span class="text-xs text-muted-foreground whitespace-nowrap">〒<?= $spot->display_postal_code() ?></span>
+                            <span class="font-bold text-card-foreground truncate"><?= htmlspecialchars($spot['name'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="text-xs text-muted-foreground whitespace-nowrap">〒<?= htmlspecialchars(isset($spot['display_postal']) ? $spot['display_postal'] : Helper_Postal::format($spot['postal_code']), ENT_QUOTES, 'UTF-8') ?></span>
                             <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground border border-border">
-                                <?= $plant_count ?> plants
+                                <?= (int) $plant_count ?> plants
                             </span>
                         </div>
                         <div class="flex gap-1 flex-shrink-0">
-                            <button onclick="openEditSpotModal(<?= $spot->id ?>, '<?= addslashes($spot->name) ?>', '<?= addslashes($spot->postal_code) ?>')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors">
+                            <button onclick="openEditSpotModal(<?= $spot_id ?>, '<?= addslashes($spot['name']) ?>', '<?= addslashes($spot['postal_code']) ?>')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors">
                                 <i data-lucide="pencil" class="h-4 w-4"></i>
                             </button>
-                            <form action="/spot/delete/<?= $spot->id ?>" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this spot?');">
+                            <form action="/spot/delete/<?= $spot_id ?>" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this spot?');">
                                 <button type="submit" class="text-muted-foreground hover:text-destructive p-2 rounded-md hover:bg-destructive/10 transition-colors">
                                     <i data-lucide="trash-2" class="h-4 w-4"></i>
                                 </button>
@@ -205,13 +210,16 @@
             <?php else: ?>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <?php foreach($plants as $plant): ?>
-                    <?php 
+                    <?php
+                        $plant_id = (int) $plant['id'];
                         $latest_date_ymd = null;
                         $is_last_updated_stale = false;
-                        if(!empty($plant->growth_logs)) {
-                            $logs = $plant->growth_logs;
-                            usort($logs, function($a, $b) { return $b->measured_at - $a->measured_at; });
-                            $latest_ts = (int)$logs[0]->measured_at;
+                        if (!empty($plant['growth_logs'])) {
+                            $logs = $plant['growth_logs'];
+                            usort($logs, function ($a, $b) {
+                                return (int) $b['measured_at'] - (int) $a['measured_at'];
+                            });
+                            $latest_ts = (int) $logs[0]['measured_at'];
                             $latest_date_ymd = date('Y/m/d', $latest_ts);
                             $is_last_updated_stale = (time() - $latest_ts) >= (30 * 24 * 60 * 60);
                         }
@@ -224,16 +232,16 @@
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
-                                        <h3 class="font-bold text-card-foreground leading-tight"><?= $plant->name ?></h3>
+                                        <h3 class="font-bold text-card-foreground leading-tight"><?= htmlspecialchars($plant['name'], ENT_QUOTES, 'UTF-8') ?></h3>
                                     </div>
-                                    <p class="text-xs text-muted-foreground"><?= $plant->species ?></p>
+                                    <p class="text-xs text-muted-foreground"><?= htmlspecialchars($plant['species'], ENT_QUOTES, 'UTF-8') ?></p>
                                 </div>
                             </div>
                             <div class="flex gap-1">
-                                <button onclick="openEditPlantModal(<?= $plant->id ?>, '<?= addslashes($plant->name) ?>', '<?= addslashes($plant->species) ?>', '<?= addslashes($plant->size) ?>', '<?= addslashes($plant->pot_size) ?>', <?= $plant->spot_id ?>)" class="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors">
+                                <button onclick="openEditPlantModal(<?= $plant_id ?>, '<?= addslashes($plant['name']) ?>', '<?= addslashes($plant['species']) ?>', '<?= addslashes($plant['size']) ?>', '<?= addslashes($plant['pot_size']) ?>', <?= (int) $plant['spot_id'] ?>)" class="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors">
                                     <i data-lucide="pencil" class="h-4 w-4"></i>
                                 </button>
-                                <form action="/plant/delete/<?= $plant->id ?>" method="POST" class="inline" onsubmit="return confirm('Delete this plant?');">
+                                <form action="/plant/delete/<?= $plant_id ?>" method="POST" class="inline" onsubmit="return confirm('Delete this plant?');">
                                     <button type="submit" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-destructive/10 transition-colors">
                                         <i data-lucide="trash-2" class="h-4 w-4"></i>
                                     </button>
@@ -243,10 +251,10 @@
 
                         <div class="flex flex-wrap gap-2 mb-4 mt-2">
                             <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground border border-border">
-                                <span class="text-muted-foreground font-normal mr-1">Size:</span> <?= $plant->size ?>
+                                <span class="text-muted-foreground font-normal mr-1">Size:</span> <?= htmlspecialchars($plant['size'], ENT_QUOTES, 'UTF-8') ?>
                             </span>
                             <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground border border-border">
-                                <span class="text-muted-foreground font-normal mr-1">Pot:</span> <?= $plant->pot_size ?>
+                                <span class="text-muted-foreground font-normal mr-1">Pot:</span> <?= htmlspecialchars($plant['pot_size'], ENT_QUOTES, 'UTF-8') ?>
                             </span>
                         </div>
 
@@ -258,21 +266,21 @@
                                         GROWTH ANALYTICS
                                     </h4>
                                     <p class="text-[10px] mt-1 <?= $is_last_updated_stale ? 'text-destructive' : 'text-muted-foreground' ?>">
-                                        Last updated: <?= $latest_date_ymd ?: '-' ?>
+                                        Last updated: <?= $latest_date_ymd ? htmlspecialchars($latest_date_ymd, ENT_QUOTES, 'UTF-8') : '-' ?>
                                     </p>
                                 </div>
-                                <?php if(!empty($plant->growth_logs)): ?>
-                                    <button onclick="toggleGrowthView(<?= $plant->id ?>)" class="text-muted-foreground hover:text-primary focus:outline-none p-1 rounded transition-colors">
-                                        <i data-lucide="chevron-down" id="chevron-<?= $plant->id ?>" class="h-5 w-5 transition-transform duration-300"></i>
+                                <?php if (!empty($plant['growth_logs'])): ?>
+                                    <button onclick="toggleGrowthView(<?= $plant_id ?>)" class="text-muted-foreground hover:text-primary focus:outline-none p-1 rounded transition-colors">
+                                        <i data-lucide="chevron-down" id="chevron-<?= $plant_id ?>" class="h-5 w-5 transition-transform duration-300"></i>
                                     </button>
                                 <?php endif; ?>
                             </div>
 
-                            <?php if(empty($plant->growth_logs)): ?>
+                            <?php if (empty($plant['growth_logs'])): ?>
                                 <p class="text-[10px] text-muted-foreground italic py-2 mt-2">No history recorded yet.</p>
                             <?php else: ?>
-                                <div id="growth-chart-container-<?= $plant->id ?>" class="hidden w-full h-[120px] mt-4">
-                                    <div id="growth-chart-<?= $plant->id ?>"></div>
+                                <div id="growth-chart-container-<?= $plant_id ?>" class="hidden w-full h-[120px] mt-4">
+                                    <div id="growth-chart-<?= $plant_id ?>"></div>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -342,7 +350,7 @@
                         <label class="text-sm font-semibold text-foreground">Assign to Spot</label>
                         <select name="spot_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring shadow-sm">
                             <?php foreach($spots as $spot): ?>
-                                <option value="<?= $spot->id ?>"><?= $spot->name ?></option>
+                                <option value="<?= (int) $spot['id'] ?>"><?= htmlspecialchars($spot['name'], ENT_QUOTES, 'UTF-8') ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -384,7 +392,7 @@
                         <label class="text-sm font-semibold text-foreground">Assign to Spot</label>
                         <select id="edit-plant-spot" name="spot_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring shadow-sm">
                             <?php foreach($spots as $spot): ?>
-                                <option value="<?= $spot->id ?>"><?= $spot->name ?></option>
+                                <option value="<?= (int) $spot['id'] ?>"><?= htmlspecialchars($spot['name'], ENT_QUOTES, 'UTF-8') ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -416,18 +424,23 @@
     </div>
 
     <?php
-        $chart_data = [];
-        foreach($plants as $p) {
-            $log_data = [];
-            if(!empty($p->growth_logs)) {
-                foreach($p->growth_logs as $l) {
-                    preg_match('/[\d\.]+/', $l->height, $matches);
-                    $val = !empty($matches[0]) ? (float)$matches[0] : 0;
-                    $log_data[] = ['x' => date('Y-m-d', $l->measured_at), 'y' => $val];
+        $chart_data = array();
+        foreach ($plants as $p) {
+            $log_data = array();
+            if (!empty($p['growth_logs'])) {
+                foreach ($p['growth_logs'] as $l) {
+                    preg_match('/[\d\.]+/', $l['height'], $matches);
+                    $val = !empty($matches[0]) ? (float) $matches[0] : 0;
+                    $log_data[] = array(
+                        'x' => date('Y-m-d', (int) $l['measured_at']),
+                        'y' => $val,
+                    );
                 }
-                usort($log_data, function($a, $b) { return strtotime($a['x']) - strtotime($b['x']); });
+                usort($log_data, function ($a, $b) {
+                    return strtotime($a['x']) - strtotime($b['x']);
+                });
             }
-            $chart_data[] = ['id' => $p->id, 'data' => $log_data];
+            $chart_data[] = array('id' => (int) $p['id'], 'data' => $log_data);
         }
     ?>
 
